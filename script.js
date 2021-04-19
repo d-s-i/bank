@@ -4,18 +4,45 @@
 //////////////////////////////// DATA /////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
 
+
 const account1 = {
-  owner: "Jonas Schmedtmann",
-  movements: [200, 450, -400, 3000, -650, -130, 70, 1300],
+  owner: 'Jonas Schmedtmann',
+  movements: [200, 455.23, -306.5, 25000, -642.21, -133.9, 79.97, 1300],
   interestRate: 1.2, // %
   pin: 1111,
+
+  movementsDates: [
+    '2021-04-18T16:33:06.386Z',
+    '2021-04-15T14:43:26.374Z',
+    '2021-04-16T18:49:59.371Z',
+    '2021-04-17T12:01:20.894Z',
+    '2019-11-01T13:15:33.035Z',
+    '2019-11-30T09:48:16.867Z',
+    '2019-12-25T06:04:23.907Z',
+    '2020-01-25T14:18:46.235Z',
+  ],
+  currency: 'EUR',
+  locale: 'pt-PT', // de-DE
 };
 
 const account2 = {
-  owner: "Jessica Davis",
+  owner: 'Jessica Davis',
   movements: [5000, 3400, -150, -790, -3210, -1000, 8500, -30],
   interestRate: 1.5,
   pin: 2222,
+
+  movementsDates: [
+    '2019-11-18T21:31:17.178Z',
+    '2019-12-23T07:42:02.383Z',
+    '2020-01-28T09:15:04.904Z',
+    '2020-04-01T10:17:24.185Z',
+    '2020-05-08T14:11:59.604Z',
+    '2020-05-27T17:01:17.194Z',
+    '2020-07-11T23:36:17.929Z',
+    '2020-07-12T10:51:36.790Z',
+  ],
+  currency: 'USD',
+  locale: 'en-US',
 };
 
 const account3 = {
@@ -23,6 +50,19 @@ const account3 = {
   movements: [200, -200, 340, -300, -20, 50, 400, -460],
   interestRate: 0.7,
   pin: 3333,
+
+  movementsDates: [
+    '2019-11-18T21:31:17.178Z',
+    '2019-12-23T07:42:02.383Z',
+    '2020-01-28T09:15:04.904Z',
+    '2020-04-01T10:17:24.185Z',
+    '2020-05-08T14:11:59.604Z',
+    '2020-05-27T17:01:17.194Z',
+    '2020-07-11T23:36:17.929Z',
+    '2020-07-12T10:51:36.790Z',
+  ],
+  currency: 'USD',
+  locale: 'en-US',
 };
 
 const account4 = {
@@ -30,6 +70,19 @@ const account4 = {
   movements: [430, 1000, 700, 50, 90],
   interestRate: 1,
   pin: 4444,
+
+  movementsDates: [
+    '2019-11-18T21:31:17.178Z',
+    '2019-12-23T07:42:02.383Z',
+    '2020-01-28T09:15:04.904Z',
+    '2020-04-01T10:17:24.185Z',
+    '2020-05-08T14:11:59.604Z',
+    '2020-05-27T17:01:17.194Z',
+    '2020-07-11T23:36:17.929Z',
+    '2020-07-12T10:51:36.790Z',
+  ],
+  currency: 'USD',
+  locale: 'en-US',
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -38,7 +91,7 @@ const account4 = {
 
 const accounts = [account1, account2, account3, account4];
 
-let currentAccount;
+let currentAccount, timer;
 let sorted = false;
 
 const inputLoginUsername = document.querySelector(".login__input--user");
@@ -67,6 +120,10 @@ const LoanButtonElement = document.querySelector(".form__btn--loan");
 
 const sortButtonElement = document.querySelector(".btn--sort");
 
+const dateTextElement = document.querySelector(".date");
+
+const timerDisplayElement = document.querySelector(".timer");
+
 ///////////////////////////////////////////////////////////////////////
 //////////////////////// BACKGROUND FUNCTIONS /////////////////////////
 ///////////////////////////////////////////////////////////////////////
@@ -78,19 +135,25 @@ const createUsername = () => {
 }
 createUsername();
 
-const displayMovements = (movements, sorted = false) => {
-  resetMovements();
+const formatMovements = function (account, movement) {
+  const OptionsFormatNumber = {
+    style: "currency",
+    currency: account.currency,
+  }
+  return new Intl.NumberFormat(account.locale, OptionsFormatNumber).format(movement)
+}
 
-  const movementsToDisplay = sorted ? movements.slice().sort((a, b) => a - b) : movements;
-  console.log(movementsToDisplay);
+const displayMovements = (account, sorted = false) => {
+  resetMovements();
+  const movementsToDisplay = sorted ? account.movements.slice().sort((a, b) => a - b) : account.movements;
+  
 
   movementsToDisplay.forEach(function (movement, i) {
-
     const typeMovement = movement > 0 ? "deposit" : "withdrawal";
     movementsElement.insertAdjacentHTML("afterbegin", 
     `<div class="movements__row">
       <div class="movements__type movements__type--${typeMovement}">${i + 1} ${typeMovement}</div>
-      <div class="movements__value">${movement} €</div>
+      <div class="movements__value">${formatMovements(account, movement)}</div>
     </div>`)
 })
 }
@@ -100,20 +163,33 @@ const displaySummaryAccount = (account) => {
   const sumWithdraw = account.movements.filter((movement) => movement < 0).reduce((accumulator, withdraw) => accumulator + withdraw, 0);
   const interest = account.movements.filter((movement) => movement > 10).reduce((accumulator, deposit) => accumulator + (deposit * account.interestRate) / 100 , 0);
   
-  summaryInValuesElement.textContent = `${sumDeposit} €`;
-  summaryOutValuesElement.textContent = `${sumWithdraw} €`;
-  summaryInterestValuesElement.textContent = `${interest} €`;
+  summaryInValuesElement.textContent = `${formatMovements(account, sumDeposit)}`;
+  summaryOutValuesElement.textContent = `${formatMovements(account, sumWithdraw)}`;
+  summaryInterestValuesElement.textContent = `${formatMovements(account, interest)}`;
 }
 
 const displayBalance = (account) => {
   account.balance = account.movements.reduce((accumulator, currentValue) => accumulator + currentValue)
-  balanceElement.textContent = `${account.balance} €`;
+  balanceElement.textContent = `${formatMovements(account, account.balance)}`;
 }
 
 const updateUI = (account) => {
-  displayMovements(account.movements)
-  displaySummaryAccount(account)
+  displayMovements(account);
+  displaySummaryAccount(account);
   displayBalance(account);
+}
+
+const formatDate = (account) => {
+  const now = new Date();
+  const optionsObjectDate = {
+    day: "numeric", 
+    month: "numeric", 
+    year: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+    second: "numeric"
+  };
+  dateTextElement.textContent = new Intl.DateTimeFormat(account.locale, optionsObjectDate).format(now);
 }
 
 const resetLoginElements = () => {
@@ -144,14 +220,19 @@ const resetMovements = () => {
 ///////////////////////////////////////////////////////////////////////
 ////////////////////// EVENTS LISTENER FUNCTIONS //////////////////////
 ///////////////////////////////////////////////////////////////////////
+
 const login = () => {
   accounts.forEach(function (account) {
     if (inputLoginUsername.value === account.username && Number(inputLoginPin.value) === account.pin) {
       currentAccount = account;
       appElement.style.opacity = 100;
       welcomeMessageElement.textContent = `Welcome ${account.owner.split(" ")[0]}, give us your money ! ╰(*°▽°*)╯`;
+      formatDate(currentAccount);
       updateUI(currentAccount);
       resetLoginElements();
+
+      if (timer) clearInterval(timer);
+      timer = displayTimer();
     }
   })
 }
@@ -187,6 +268,26 @@ const checkLoan = () => {
   }
 }
 
+const displayTimer = function () {
+  const tick = function () {
+    const minutes = String(Math.trunc(time / 60)).padStart(2, 0);
+    const seconds = String(time % 60).padStart(2, 0);
+    timerDisplayElement.textContent = `${minutes}:${seconds}`;
+    
+    if (time === 0) {
+      currentAccount = "";
+      appElement.style.opacity = 0;
+      clearInterval(timer);
+    }
+    time--;
+  }
+  
+  let time = 120;
+  tick();
+  timer = setInterval(tick, 1000);
+  return timer; 
+}
+
 ///////////////////////////////////////////////////////////////////////
 ////////////////////////// EVENT LISTENERS ////////////////////////////
 ///////////////////////////////////////////////////////////////////////
@@ -213,6 +314,5 @@ LoanButtonElement.addEventListener("click", e => {
 
 sortButtonElement.addEventListener("click", e => {
   sorted = !sorted;
-  displayMovements(currentAccount.movements, sorted);
+  displayMovements(currentAccount, sorted);
 });
-
